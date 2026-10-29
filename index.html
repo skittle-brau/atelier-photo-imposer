@@ -1,0 +1,1426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Atelier Photo Imposer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: the Atelier Imposer light table. Settings rail on the left, the press sheet in the middle, the photo tray on the right. */
+:root{
+  --bg:#e8ecef; --table:#d6dde2; --panel:#f8fafb; --ink:#162027; --muted:#566570; --line:#ccd5db;
+  --accent:#1d5fa8; --accent-ink:#ffffff; --accent-soft:#dde8f5; --warn:#8a4b00; --warn-bg:#fff1d9; --bad:#a1260f; --bad-bg:#fde4de;
+  --f-display:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10161a; --table:#0a0e11; --panel:#172027; --ink:#e2e8ec; --muted:#92a1ab; --line:#29353d;
+  --accent:#6ea8e6; --accent-ink:#071a30; --accent-soft:#1a2f47; --warn:#ffbf66; --warn-bg:#33240f; --bad:#ff9a85; --bad-bg:#3a1710; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10161a; --table:#0a0e11; --panel:#172027; --ink:#e2e8ec; --muted:#92a1ab; --line:#29353d;
+  --accent:#6ea8e6; --accent-ink:#071a30; --accent-soft:#1a2f47; --warn:#ffbf66; --warn-bg:#33240f; --bad:#ff9a85; --bad-bg:#3a1710; color-scheme:dark}
+
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45;display:flex;flex-direction:column}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));border-bottom:1px solid var(--line);background:var(--panel)}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+.brand svg{flex:none}
+.brand h1{font-family:var(--f-display);font-weight:700;font-size:21px;letter-spacing:.01em;margin:0;line-height:1}
+.brand small{display:block;font-family:var(--f-mono);font-size:11px;color:var(--muted);margin-top:3px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:7px 12px;cursor:pointer;font-weight:500;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.sm{padding:4px 9px;font-size:13px}
+
+.app{flex:1;min-height:0;display:grid;grid-template-columns:330px minmax(0,1fr)}
+.rail{overflow:auto;border-right:1px solid var(--line);background:var(--panel);padding-block:4px 24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:16px}
+.main{min-width:0;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 380px}
+.stage{min-width:0;min-height:0;display:flex;flex-direction:column;background:var(--table);position:relative;overflow:auto}
+
+.sec{border-bottom:1px solid var(--line);padding-block:14px;display:grid;gap:10px}
+.sec:last-child{border-bottom:0}
+.sec h2{font-family:var(--f-display);font-weight:600;font-size:13px;letter-spacing:.09em;text-transform:uppercase;margin:0;color:var(--muted);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.hint{font-size:12.5px;color:var(--muted);margin:0}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.field{display:grid;gap:3px;min-width:0}
+.field>span{font-size:12px;color:var(--muted)}
+.field input,.field select{width:100%;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:5px;padding:6px 8px;font-family:var(--f-mono);font-size:13px}
+.field select{font-family:var(--f-body)}
+.unitwrap{position:relative}
+.unitwrap input{padding-right:30px}
+.unitwrap i{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-style:normal;font-family:var(--f-mono);font-size:11px;color:var(--muted);pointer-events:none}
+.check{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13.5px}
+.check input{accent-color:var(--accent);width:16px;height:16px;margin:0;flex:none}
+
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--bg)}
+.seg label{flex:1;min-width:0;text-align:center;cursor:pointer;position:relative}
+.seg input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.seg span{display:block;padding:6px 4px;font-size:12.5px;font-weight:500;border-left:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg label:first-child span{border-left:0}
+.seg input:checked+span{background:var(--accent);color:var(--accent-ink)}
+.seg input:focus-visible+span{outline:2px solid var(--accent);outline-offset:-3px}
+.seg.small span{font-family:var(--f-mono);font-size:12px}
+
+.srcinfo{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:12.5px;margin:0}
+.srcinfo dt{color:var(--muted)}
+.srcinfo dd{margin:0;font-family:var(--f-mono);font-size:12px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-block:10px;padding-inline:16px}
+.nav{display:flex;align-items:center;gap:4px}
+.nav .btn{padding:5px 9px}
+.facelabel{font-family:var(--f-mono);font-size:13px;min-width:13ch;text-align:center;font-variant-numeric:tabular-nums}
+.spacer{flex:1}
+.busy{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+
+.view{flex:1;min-height:360px;position:relative;display:flex;padding:8px 16px 16px}
+.sheetwrap{flex:none;margin:auto;position:relative;box-shadow:0 1px 2px rgba(0,0,0,.18),0 8px 28px rgba(0,0,0,.18);background:#fff;line-height:0}
+.sheetwrap canvas{display:block;cursor:pointer}
+.empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;pointer-events:none}
+.empty .card{pointer-events:auto;max-width:360px;text-align:center;display:grid;gap:10px;box-shadow:0 8px 28px rgba(0,0,0,.2)}
+.empty .card p{margin:0}
+.empty .card div{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.drop{position:fixed;inset:10px;border:2px dashed var(--accent);border-radius:12px;background:color-mix(in srgb,var(--panel) 80%,transparent);display:flex;align-items:center;justify-content:center;font-family:var(--f-display);font-size:24px;font-weight:600;color:var(--accent);z-index:30;pointer-events:none}
+
+.below{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;padding-block:0 16px;padding-inline:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;min-width:0}
+.card h3{font-family:var(--f-display);font-weight:600;font-size:13px;letter-spacing:.09em;text-transform:uppercase;margin:0 0 8px;color:var(--muted)}
+.stats{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-family:var(--f-mono);font-size:12px;padding:3px 8px;border-radius:4px;background:var(--bg);border:1px solid var(--line);font-variant-numeric:tabular-nums}
+.chip b{font-weight:500;color:var(--accent)}
+.warns{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:4px}
+.warns li{font-size:12.5px;background:var(--warn-bg);color:var(--warn);padding:5px 8px;border-radius:4px}
+.cuts{font-family:var(--f-mono);font-size:12px;font-variant-numeric:tabular-nums;display:grid;gap:6px}
+.cuts div{display:grid;grid-template-columns:auto 1fr;gap:10px}
+.cuts dt{color:var(--muted);font-family:var(--f-body)}
+.cuts dd{margin:0;overflow-wrap:anywhere}
+.cuts p{margin:0;font-family:var(--f-body);color:var(--muted);font-size:12.5px}
+
+.tray{min-width:0;min-height:0;display:flex;flex-direction:column;border-left:1px solid var(--line);background:var(--panel)}
+.trayhead{padding:12px 16px;padding-right:max(16px,env(safe-area-inset-right,0px));border-bottom:1px solid var(--line);display:grid;gap:10px}
+.trayhead h2{font-family:var(--f-display);font-weight:600;font-size:13px;letter-spacing:.09em;text-transform:uppercase;margin:0;color:var(--muted);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.trayhead .sum{font-family:var(--f-mono);font-size:12px;text-transform:none;letter-spacing:0;color:var(--ink)}
+.inline{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.inline input{flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:5px;padding:6px 8px}
+.inline input[type=number]{flex:0 0 64px;font-family:var(--f-mono);font-size:13px}
+.plist{list-style:none;margin:0;padding:6px 0;overflow:auto;flex:1;min-height:0}
+.prow{display:grid;grid-template-columns:72px minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:6px 16px;padding-right:max(16px,env(safe-area-inset-right,0px));border-bottom:1px solid var(--line)}
+.prow:last-child{border-bottom:0}
+.pthumb{width:72px;height:72px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);background:var(--table);border-radius:5px;padding:3px;cursor:pointer}
+.pthumb canvas{display:block;max-width:100%;max-height:100%;box-shadow:0 1px 3px rgba(0,0,0,.25);background:#fff}
+.pmeta{min-width:0;display:grid;gap:2px}
+.pname{font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:0;background:none;padding:0;text-align:left;cursor:pointer}
+.pname:hover{color:var(--accent)}
+.pinfo{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;display:flex;flex-wrap:wrap;gap:2px 8px}
+.ppi.lo{color:var(--warn)}
+.ppi.bad{color:var(--bad);font-weight:500}
+.qty{display:flex;align-items:center;border:1px solid var(--line);border-radius:5px;background:var(--bg);overflow:hidden}
+.qty button{border:0;background:none;width:24px;height:28px;cursor:pointer;color:var(--muted);font-size:15px;line-height:1}
+.qty button:hover{color:var(--ink)}
+.qty input{width:38px;border:0;background:none;text-align:center;font-family:var(--f-mono);font-size:13px;padding:4px 0;-moz-appearance:textfield}
+.qty input::-webkit-inner-spin-button,.qty input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.del{border:0;background:none;color:var(--muted);cursor:pointer;padding:4px 6px}
+.del:hover{color:var(--bad)}
+.trayempty{padding:20px 16px;color:var(--muted);font-size:13px}
+
+.presets{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.presets li{display:flex;gap:6px;align-items:center}
+.presets li button.load{flex:1;text-align:left;border:1px solid var(--line);background:var(--bg);border-radius:5px;padding:5px 8px;cursor:pointer;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+dialog.ed{width:min(1120px,calc(100vw - 24px));height:min(780px,calc(100vh - 24px));max-width:none;max-height:none;padding:0;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink)}
+dialog.ed[open]{display:flex;flex-direction:column}
+dialog.ed::backdrop{background:rgba(8,12,16,.6)}
+.edhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line)}
+.edhead h2{font-family:var(--f-display);font-weight:600;font-size:18px;margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:50%}
+.edbody{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 270px}
+.edstage{min-width:0;min-height:0;background:var(--table);display:flex;align-items:center;justify-content:center;padding:16px;overflow:hidden;position:relative}
+.edstage canvas{display:block;touch-action:none;box-shadow:0 1px 2px rgba(0,0,0,.2),0 6px 20px rgba(0,0,0,.2)}
+.edstage canvas.drag{cursor:move}
+.edside{border-left:1px solid var(--line);padding:14px;display:grid;gap:12px;align-content:start;overflow:auto}
+.edside input[type=range]{width:100%;accent-color:var(--accent);padding:0;border:0;background:none}
+
+.building{position:fixed;inset:0;background:rgba(8,12,16,.55);display:flex;align-items:center;justify-content:center;z-index:40;padding:16px}
+.building .card{width:min(380px,100%);display:grid;gap:10px}
+.prog{height:8px;border-radius:4px;background:var(--bg);border:1px solid var(--line);overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--accent)}
+.building p{margin:0;font-family:var(--f-mono);font-size:12.5px;color:var(--muted)}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:8px 14px;border-radius:6px;font-size:13px;z-index:50;max-width:calc(100% - 32px)}
+
+@media (max-width:1240px){
+  .main{display:flex;flex-direction:column;overflow:auto;background:var(--table)}
+  .stage{flex:none;overflow:visible}
+  .view{flex:none;height:min(72vh,760px)}
+  .tray{border-left:0;border-top:1px solid var(--line);flex:none}
+  .plist{overflow:visible}
+}
+@media (max-width:860px){
+  html,body{height:auto}
+  .app{display:flex;flex-direction:column}
+  .main{order:-1;overflow:visible}
+  .view{height:62vh;min-height:0}
+  .rail{border-right:0;border-top:1px solid var(--line);overflow:visible;padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .below{grid-template-columns:1fr}
+  .edbody{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}
+  .edside{border-left:0;border-top:1px solid var(--line);max-height:42vh}
+}
+@media (prefers-reduced-motion:no-preference){.btn{transition:border-color .15s,filter .15s}}
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="brand">
+    <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true">
+      <g stroke="currentColor" stroke-width="1.4" fill="none">
+        <path d="M8 1v5M1 8h5M22 1v5M29 8h-5M8 29v-5M1 22h5M22 29v-5M29 22h-5"/>
+      </g>
+      <rect x="9" y="9" width="12" height="12" fill="var(--accent)"/>
+      <path d="M9 21l4-5 3 3 2-2 3 4z" fill="var(--panel)"/>
+    </svg>
+    <div><h1>Atelier Photo Imposer</h1><small id="subtitle">crop · rotate · step &amp; repeat photo prints</small></div>
+  </div>
+  <input type="file" id="file" accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif,.avif" multiple hidden>
+  <button class="btn" id="open">Add photos…</button>
+  <button class="btn primary" id="dl" disabled>Download PDF</button>
+</header>
+
+<div class="app">
+  <aside class="rail" id="rail">
+
+    <section class="sec">
+      <h2>Print size <span class="seg small" style="width:100px" role="radiogroup" aria-label="Units">
+        <label><input type="radio" name="unit" value="in" data-k="unit"><span>in</span></label>
+        <label><input type="radio" name="unit" value="mm" data-k="unit"><span>mm</span></label>
+      </span></h2>
+      <label class="field"><span>Each photo is cropped to</span>
+        <select id="f-print" data-k="print"></select></label>
+      <div class="row2">
+        <label class="field"><span>Width</span><span class="unitwrap"><input id="f-printW" type="number" step="any" min="0" data-k="printW" data-len><i class="u"></i></span></label>
+        <label class="field"><span>Height</span><span class="unitwrap"><input id="f-printH" type="number" step="any" min="0" data-k="printH" data-len><i class="u"></i></span></label>
+      </div>
+      <p class="hint">Landscape photos get a landscape print and portrait photos a portrait one; prints are turned on the sheet to fit.</p>
+      <label class="field"><span>Bleed around each print</span><span class="unitwrap"><input id="f-bleed" type="number" step="any" min="0" data-k="bleed" data-len><i class="u"></i></span></label>
+      <div class="field"><span>Photos that don’t match the print shape</span>
+        <div class="seg" role="radiogroup" aria-label="Crop mode">
+          <label><input type="radio" name="fit" value="fill" data-k="fit"><span>Crop to fill</span></label>
+          <label><input type="radio" name="fit" value="fit" data-k="fit"><span>Fit, white border</span></label>
+        </div></div>
+    </section>
+
+    <section class="sec">
+      <h2>Press sheet</h2>
+      <label class="field"><span>Sheet size</span>
+        <select id="f-sheet" data-k="sheet"></select></label>
+      <div class="row2">
+        <label class="field"><span>Width</span><span class="unitwrap"><input id="f-sheetW" type="number" step="any" min="0" data-k="sheetW" data-len><i class="u"></i></span></label>
+        <label class="field"><span>Height</span><span class="unitwrap"><input id="f-sheetH" type="number" step="any" min="0" data-k="sheetH" data-len><i class="u"></i></span></label>
+      </div>
+      <div class="seg" role="radiogroup" aria-label="Sheet orientation">
+        <label><input type="radio" name="orient" value="auto" data-k="orient"><span>Best fit</span></label>
+        <label><input type="radio" name="orient" value="portrait" data-k="orient"><span>Portrait</span></label>
+        <label><input type="radio" name="orient" value="landscape" data-k="orient"><span>Landscape</span></label>
+      </div>
+      <div class="field"><span>Minimum margins, sheet edge to trim</span>
+        <div class="row2">
+          <label class="field"><span>Top</span><span class="unitwrap"><input id="f-mt" type="number" step="any" min="0" data-k="mt" data-len><i class="u"></i></span></label>
+          <label class="field"><span>Bottom</span><span class="unitwrap"><input id="f-mb" type="number" step="any" min="0" data-k="mb" data-len><i class="u"></i></span></label>
+          <label class="field"><span>Left</span><span class="unitwrap"><input id="f-ml" type="number" step="any" min="0" data-k="ml" data-len><i class="u"></i></span></label>
+          <label class="field"><span>Right</span><span class="unitwrap"><input id="f-mr" type="number" step="any" min="0" data-k="mr" data-len><i class="u"></i></span></label>
+        </div></div>
+    </section>
+
+    <section class="sec">
+      <h2>Imposition</h2>
+      <div class="seg" role="radiogroup" aria-label="Grid">
+        <label><input type="radio" name="grid" value="auto" data-k="grid"><span>Automatic</span></label>
+        <label><input type="radio" name="grid" value="manual" data-k="grid"><span>Set columns × rows</span></label>
+      </div>
+      <label class="check" data-show="grid=auto"><input type="checkbox" id="f-mix" data-k="mix"> Mix portrait and landscape slots when it fits more prints</label>
+      <div class="row2" data-show="grid=manual">
+        <label class="field"><span>Columns across</span><input id="f-cols" type="number" min="1" max="99" step="1" data-k="cols" data-int></label>
+        <label class="field"><span>Rows down</span><input id="f-rows" type="number" min="1" max="99" step="1" data-k="rows" data-int></label>
+      </div>
+      <div class="seg" data-show="grid=manual" role="radiogroup" aria-label="Slot orientation">
+        <label><input type="radio" name="cellOrient" value="portrait" data-k="cellOrient"><span>Portrait slots</span></label>
+        <label><input type="radio" name="cellOrient" value="landscape" data-k="cellOrient"><span>Landscape slots</span></label>
+      </div>
+      <div class="row2">
+        <label class="field"><span>Gutter between columns</span><span class="unitwrap"><input id="f-gx" type="number" step="any" min="0" data-k="gx" data-len><i class="u"></i></span></label>
+        <label class="field"><span>Gutter between rows</span><span class="unitwrap"><input id="f-gy" type="number" step="any" min="0" data-k="gy" data-len><i class="u"></i></span></label>
+      </div>
+      <p class="hint">A gutter of twice the bleed gives every print full bleed and its own cuts. A smaller gutter trims the bleed between neighbours; no gutter means shared cuts.</p>
+      <label class="check"><input type="checkbox" id="f-fillLast" data-k="fillLast"> Fill empty slots on the last sheet with extra copies</label>
+    </section>
+
+    <section class="sec">
+      <h2>Marks</h2>
+      <label class="check"><input type="checkbox" id="f-crop" data-k="crop"> Crop marks at every cut</label>
+      <div class="row3" data-show="crop=1">
+        <label class="field"><span>Length</span><span class="unitwrap"><input id="f-markLen" type="number" step="any" min="0" data-k="markLen" data-len><i class="u"></i></span></label>
+        <label class="field"><span>Offset</span><span class="unitwrap"><input id="f-markOff" type="number" step="any" min="0" data-k="markOff" data-len><i class="u"></i></span></label>
+        <label class="field"><span>Weight</span><span class="unitwrap"><input id="f-markW" type="number" step="any" min="0" data-k="markW"><i>pt</i></span></label>
+      </div>
+      <label class="field" data-show="crop=1"><span>Mark colour</span>
+        <select id="f-markColor" data-k="markColor">
+          <option value="k">Black only (K100)</option>
+          <option value="reg">Registration (C100 M100 Y100 K100)</option>
+        </select></label>
+      <label class="check"><input type="checkbox" id="f-slug" data-k="slug"> Slug line: sheet number, print size and date</label>
+    </section>
+
+    <section class="sec">
+      <h2>PDF output</h2>
+      <div class="seg" role="radiogroup" aria-label="Image data">
+        <label><input type="radio" name="image" value="original" data-k="image"><span>Original pixels</span></label>
+        <label><input type="radio" name="image" value="resample" data-k="image"><span>Resample</span></label>
+      </div>
+      <p class="hint" data-show="image=original">JPEGs go into the PDF untouched, with no recompression, and are cropped by clipping. Best quality; the file is as large as your photos.</p>
+      <label class="field" data-show="image=resample"><span>Resolution (never upsampled)</span><span class="unitwrap"><input id="f-ppi" type="number" min="72" max="1200" step="1" data-k="ppi" data-int><i>ppi</i></span></label>
+      <p class="hint" data-show="image=resample">Each crop is cut out and saved as a high-quality JPEG at this resolution. Much smaller files for big batches.</p>
+    </section>
+
+    <section class="sec">
+      <h2>Saved setups</h2>
+      <div class="inline"><input id="presetName" type="text" placeholder="e.g. 5×7 on SRA3" aria-label="Setup name"><button class="btn sm" id="savePreset">Save</button></div>
+      <ul class="presets" id="presets"></ul>
+      <p class="hint">Saved setups stay in this browser only. Photos are never uploaded.</p>
+    </section>
+  </aside>
+
+  <div class="main">
+    <main class="stage">
+      <div class="toolbar">
+        <div class="nav">
+          <button class="btn" id="prev" aria-label="Previous sheet">◀</button>
+          <span class="facelabel" id="facelabel">–</span>
+          <button class="btn" id="next" aria-label="Next sheet">▶</button>
+        </div>
+        <label class="check" style="margin-left:8px"><input type="checkbox" id="f-overlay" data-k="overlay"> Show trims and names</label>
+        <span class="spacer"></span>
+        <span class="busy" id="busy"></span>
+      </div>
+      <div class="view" id="view">
+        <div class="sheetwrap" id="sheetwrap"><canvas id="cv" aria-label="Press sheet preview. Click a print to adjust its crop."></canvas></div>
+        <div class="empty" id="empty">
+          <div class="card">
+            <p><b>Drop photos anywhere on the page</b></p>
+            <p class="hint">JPEG, PNG, WebP and anything else your browser can open. Everything stays on this computer.</p>
+            <div><button class="btn primary" id="open2">Add photos…</button><button class="btn" id="sample">Try sample photos</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="below">
+        <div class="card"><h3>Layout</h3><div class="stats" id="stats"></div><ul class="warns" id="warns"></ul></div>
+        <div class="card"><h3>Guillotine cuts</h3><dl class="cuts" id="cuts"></dl></div>
+      </div>
+    </main>
+
+    <aside class="tray" aria-label="Photos">
+      <div class="trayhead">
+        <h2>Photos <span class="sum" id="sum"></span></h2>
+        <div class="inline">
+          <span class="hint">Copies of each</span><input id="allQty" type="number" min="1" max="999" step="1" value="1" aria-label="Copies of every photo"><button class="btn sm" id="setAll">Set all</button>
+          <span class="spacer"></span>
+          <button class="btn sm" id="sortName" title="Sort by file name">Sort A–Z</button>
+          <button class="btn sm" id="clearAll">Remove all</button>
+        </div>
+      </div>
+      <ul class="plist" id="plist"></ul>
+    </aside>
+  </div>
+</div>
+
+<dialog class="ed" id="ed" aria-labelledby="edTitle">
+  <div class="edhead">
+    <h2 id="edTitle">Crop</h2><span class="busy" id="edCount"></span>
+    <span class="spacer"></span>
+    <button class="btn sm" id="edPrev">◀ Previous</button>
+    <button class="btn sm" id="edNext">Next ▶</button>
+    <button class="btn sm primary" id="edDone">Done</button>
+  </div>
+  <div class="edbody">
+    <div class="edstage" id="edstage"><canvas id="ecv"></canvas></div>
+    <div class="edside">
+      <dl class="srcinfo" id="edInfo"></dl>
+      <div class="field"><span>Crop</span>
+        <div class="seg" role="radiogroup" aria-label="Crop mode for this photo">
+          <label><input type="radio" name="edFit" value="fill"><span>Crop to fill</span></label>
+          <label><input type="radio" name="edFit" value="fit"><span>Fit whole photo</span></label>
+        </div></div>
+      <div class="field"><span>Print orientation</span>
+        <div class="seg" role="radiogroup" aria-label="Print orientation for this photo">
+          <label><input type="radio" name="edOrient" value="auto"><span>Auto</span></label>
+          <label><input type="radio" name="edOrient" value="portrait"><span>Portrait</span></label>
+          <label><input type="radio" name="edOrient" value="landscape"><span>Landscape</span></label>
+        </div></div>
+      <label class="field" id="edZoomF"><span>Zoom</span><input id="edZoom" type="range" min="1" max="6" step="0.01" value="1"></label>
+      <div class="inline">
+        <button class="btn sm" id="edRotL" title="Rotate 90° anticlockwise" aria-label="Rotate 90° anticlockwise">⟲ 90°</button>
+        <button class="btn sm" id="edRotR" title="Rotate 90° clockwise" aria-label="Rotate 90° clockwise">⟳ 90°</button>
+        <button class="btn sm" id="edReset">Centre crop</button>
+      </div>
+      <label class="field"><span>Copies</span><input id="edQty" type="number" min="0" max="999" step="1"></label>
+      <p class="hint" id="edHint"></p>
+      <button class="btn" id="edRemove">Remove this photo</button>
+    </div>
+  </div>
+</dialog>
+
+<div class="building" id="building" hidden>
+  <div class="card" role="status">
+    <h3>Building PDF</h3>
+    <div class="prog"><i id="bprog"></i></div>
+    <p id="bmsg">Starting…</p>
+    <div><button class="btn sm" id="bcancel">Cancel</button></div>
+  </div>
+</div>
+<div class="drop" id="drop" hidden>Drop photos to add them</div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script>
+"use strict";
+const { PDFDocument, StandardFonts, cmyk, pushGraphicsState, popGraphicsState, rectangle, clip, endPath, concatTransformationMatrix, drawObject } = PDFLib;
+
+const U = { in: 72, mm: 72 / 25.4 };
+const MM = U.mm, IN = 72, CM = 10 * MM;
+const PRINTS = [
+  ["Inches", "2.5x3.5", "Wallet 2.5 × 3.5 in", 2.5 * IN, 3.5 * IN],
+  ["Inches", "3.5x5", "3.5 × 5 in", 3.5 * IN, 5 * IN],
+  ["Inches", "4x6", "4 × 6 in", 4 * IN, 6 * IN],
+  ["Inches", "5x7", "5 × 7 in", 5 * IN, 7 * IN],
+  ["Inches", "6x8", "6 × 8 in", 6 * IN, 8 * IN],
+  ["Inches", "8x10", "8 × 10 in", 8 * IN, 10 * IN],
+  ["Inches", "8x12", "8 × 12 in", 8 * IN, 12 * IN],
+  ["Inches", "11x14", "11 × 14 in", 11 * IN, 14 * IN],
+  ["Inches", "4x4", "4 × 4 in square", 4 * IN, 4 * IN],
+  ["Inches", "6x6", "6 × 6 in square", 6 * IN, 6 * IN],
+  ["Centimetres", "9x13", "9 × 13 cm", 9 * CM, 13 * CM],
+  ["Centimetres", "10x15", "10 × 15 cm", 10 * CM, 15 * CM],
+  ["Centimetres", "13x18", "13 × 18 cm", 13 * CM, 18 * CM],
+  ["Centimetres", "15x20", "15 × 20 cm", 15 * CM, 20 * CM],
+  ["Centimetres", "20x30", "20 × 30 cm", 20 * CM, 30 * CM],
+  ["ISO", "a6", "A6 105 × 148 mm", 105 * MM, 148 * MM],
+  ["ISO", "a5", "A5 148 × 210 mm", 148 * MM, 210 * MM],
+  ["ISO", "a4", "A4 210 × 297 mm", 210 * MM, 297 * MM],
+  ["", "custom", "Custom", 0, 0],
+];
+const SHEETS = [
+  ["ISO A", "a5", "A5 148 × 210 mm", 148 * MM, 210 * MM],
+  ["ISO A", "a4", "A4 210 × 297 mm", 210 * MM, 297 * MM],
+  ["ISO A", "a3", "A3 297 × 420 mm", 297 * MM, 420 * MM],
+  ["ISO A", "a2", "A2 420 × 594 mm", 420 * MM, 594 * MM],
+  ["ISO A", "a1", "A1 594 × 841 mm", 594 * MM, 841 * MM],
+  ["ISO A", "a0", "A0 841 × 1189 mm", 841 * MM, 1189 * MM],
+  ["SRA and B", "sra4", "SRA4 225 × 320 mm", 225 * MM, 320 * MM],
+  ["SRA and B", "sra3", "SRA3 320 × 450 mm", 320 * MM, 450 * MM],
+  ["SRA and B", "sra2", "SRA2 450 × 640 mm", 450 * MM, 640 * MM],
+  ["SRA and B", "b4", "B4 250 × 353 mm", 250 * MM, 353 * MM],
+  ["SRA and B", "b3", "B3 353 × 500 mm", 353 * MM, 500 * MM],
+  ["US", "letter", "Letter 8.5 × 11 in", 612, 792],
+  ["US", "tabloid", "Tabloid 11 × 17 in", 792, 1224],
+  ["US", "12x18", "12 × 18 in", 864, 1296],
+  ["US", "13x19", "13 × 19 in", 936, 1368],
+  ["", "custom", "Custom", 0, 0],
+];
+const DEF = {
+  unit: "mm", print: "5x7", printW: 5 * IN, printH: 7 * IN, bleed: 3 * MM, fit: "fill",
+  sheet: "sra3", sheetW: 320 * MM, sheetH: 450 * MM, orient: "auto",
+  mt: 10 * MM, mb: 10 * MM, ml: 10 * MM, mr: 10 * MM,
+  grid: "auto", mix: true, cols: 2, rows: 2, cellOrient: "portrait", gx: 6 * MM, gy: 6 * MM, fillLast: false,
+  crop: true, markLen: 5 * MM, markOff: 3 * MM, markW: 0.25, markColor: "k", slug: true,
+  image: "original", ppi: 300,
+  overlay: true,
+};
+const LOW_PPI = 200, OK_PPI = 300;
+
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } },
+};
+
+let st = Object.assign({}, DEF, store.get("photoimposer.settings", {}));
+const S = { photos: [], plan: null, face: 0, building: null };
+const $ = (s) => document.querySelector(s);
+const clamp = (v, a, b) => Math.min(Math.max(v, a), Math.max(a, b));
+
+function fmt(pt, unit = st.unit, withUnit = true) {
+  const v = pt / U[unit];
+  const s = (+v.toFixed(unit === "in" ? 3 : 1)).toString();
+  return withUnit ? s + " " + unit : s;
+}
+const fmt2 = (w, h) => `${fmt(w, st.unit, false)} × ${fmt(h)}`;
+
+// ---------- affine maths ----------
+// [a,b,c,d,e,f] maps x' = a·x + c·y + e, y' = b·x + d·y + f (the PDF and canvas convention)
+const ID = [1, 0, 0, 1, 0, 0];
+const mul = (m, n) => [ // n first, then m
+  m[0] * n[0] + m[2] * n[1], m[1] * n[0] + m[3] * n[1],
+  m[0] * n[2] + m[2] * n[3], m[1] * n[2] + m[3] * n[3],
+  m[0] * n[4] + m[2] * n[5] + m[4], m[1] * n[4] + m[3] * n[5] + m[5],
+];
+const chain = (...ms) => ms.reduce((acc, m) => mul(m, acc)); // applied left to right
+const rectM = (f, t) => {
+  const a = (t.r - t.l) / (f.r - f.l), d = (t.t - t.b) / (f.t - f.b);
+  return [a, 0, 0, d, t.l - f.l * a, t.b - f.b * d];
+};
+const UNIT = { l: 0, b: 0, r: 1, t: 1 };
+// all of these act on the unit square with y pointing up
+const ROT_CW = [0, -1, 1, 0, 0, 1];
+const EXIF_M = {
+  1: ID, 2: [-1, 0, 0, 1, 1, 0], 3: [-1, 0, 0, -1, 1, 1], 4: [1, 0, 0, -1, 0, 1],
+  5: [0, -1, -1, 0, 1, 1], 6: ROT_CW, 7: [0, 1, 1, 0, 0, 0], 8: [0, 1, -1, 0, 1, 0],
+};
+function userRotM(rot) { let m = ID; for (let k = 0; k < ((rot / 90) | 0) % 4; k++) m = mul(ROT_CW, m); return m; }
+// pixel space of a canvas or image (y down) to the unit square
+const pixM = (w, h) => [1 / w, 0, 0, -1 / h, 0, 1];
+
+// ---------- photo geometry ----------
+function baseDims() {
+  const w = Math.max(9, st.printW), h = Math.max(9, st.printH);
+  return [Math.min(w, h), Math.max(w, h)];
+}
+const oriented = (p) => (p.rot % 180 ? [p.h, p.w] : [p.w, p.h]);
+const fitOf = (p) => p.fit || st.fit;
+function orientOf(p) {
+  if (p.orient !== "auto") return p.orient;
+  const [w, h] = oriented(p);
+  return w > h ? "landscape" : "portrait";
+}
+function printDims(p) {
+  const [a, b] = baseDims();
+  return orientOf(p) === "landscape" ? [b, a] : [a, b];
+}
+// Where the photo goes on its print. `win` is the part of the (rotated) photo used, as a y-up unit rect;
+// `dst` is where that lands in print space, with the trim running from 0,0 to PW,PH.
+function placement(p) {
+  const [PW, PH] = printDims(p), [dw, dh] = oriented(p);
+  if (fitOf(p) === "fit") {
+    const k = Math.min(PW / dw, PH / dh), w = dw * k, h = dh * k;
+    return { win: UNIT, dst: { l: (PW - w) / 2, b: (PH - h) / 2, r: (PW + w) / 2, t: (PH + h) / 2 }, PW, PH, ppi: 72 / k, bleed: 0 };
+  }
+  const b = st.bleed, A = (PW + 2 * b) / (PH + 2 * b);
+  let ww = dw, wh = dw / A;
+  if (wh > dh) { wh = dh; ww = dh * A; }
+  const z = Math.max(1, p.zoom || 1);
+  ww /= z; wh /= z;
+  const x0 = clamp(p.cx * dw - ww / 2, 0, dw - ww), y0 = clamp(p.cy * dh - wh / 2, 0, dh - wh); // y0 from the top
+  const win = { l: x0 / dw, r: (x0 + ww) / dw, t: 1 - y0 / dh, b: 1 - (y0 + wh) / dh };
+  return { win, dst: { l: -b, b: -b, r: PW + b, t: PH + b }, PW, PH, ppi: ww / ((PW + 2 * b) / 72), bleed: b };
+}
+const turned = (pl, cell) => Math.abs(pl.PW - cell.w) > 0.5;
+// print space to sheet space; a print the other way round from its slot is turned 90° with its top to the left
+function cellM(pl, cell) {
+  return turned(pl, cell) ? [0, 1, -1, 0, cell.x + pl.PH, cell.y] : [1, 0, 0, 1, cell.x, cell.y];
+}
+
+// ---------- layout ----------
+function sheetBase() {
+  const w = Math.max(36, st.sheetW), h = Math.max(36, st.sheetH);
+  return [Math.min(w, h), Math.max(w, h)];
+}
+function layout() {
+  const [a, b] = sheetBase(), [pw, ph] = baseDims();
+  const D = { portrait: [pw, ph], landscape: [ph, pw] }, OTHER = { portrait: "landscape", landscape: "portrait" };
+  const gx = st.gx, gy = st.gy;
+  const fitN = (avail, c, g) => Math.max(0, Math.floor((avail + g + 0.01) / (c + g)));
+  const blk = (cols, rows, o) => {
+    const [cw, ch] = D[o];
+    return { cols, rows, o, cw, ch, w: cols * cw + Math.max(0, cols - 1) * gx, h: rows * ch + Math.max(0, rows - 1) * gy, n: cols * rows };
+  };
+  const cands = [];
+  for (const so of st.orient === "auto" ? ["portrait", "landscape"] : [st.orient]) {
+    const [sw, sh] = so === "portrait" ? [a, b] : [b, a];
+    const AW = sw - st.ml - st.mr, AH = sh - st.mt - st.mb;
+    const add = (blocks, dir) => cands.push({ sw, sh, AW, AH, blocks, dir, n: blocks.reduce((s, k) => s + k.n, 0) });
+    if (st.grid === "manual") { add([blk(st.cols, st.rows, st.cellOrient)], null); continue; }
+    for (const o of ["portrait", "landscape"]) {
+      const [cw, ch] = D[o];
+      const cols = fitN(AW, cw, gx), rows = fitN(AH, ch, gy);
+      if (cols && rows) add([blk(cols, rows, o)], null);
+      if (!st.mix || pw === ph || !cols || !rows) continue;
+      // a strip of slots the other way round, beside or below a (possibly narrower) main grid
+      const o2 = OTHER[o], [cw2, ch2] = D[o2];
+      for (let c1 = cols; c1 >= 1; c1--) {
+        const A = blk(c1, rows, o), c2 = fitN(AW - A.w - gx, cw2, gx), r2 = fitN(AH, ch2, gy);
+        if (c2 && r2) add([A, blk(c2, r2, o2)], "x");
+      }
+      for (let r1 = rows; r1 >= 1; r1--) {
+        const A = blk(cols, r1, o), r2 = fitN(AH - A.h - gy, ch2, gy), c2 = fitN(AW, cw2, gx);
+        if (c2 && r2) add([A, blk(c2, r2, o2)], "y");
+      }
+    }
+  }
+  let L = null;
+  for (const c of cands) if (!L || c.n > L.n || (c.n === L.n && c.blocks.length < L.blocks.length)) L = c;
+  if (!L) {
+    const [sw, sh] = st.orient === "landscape" ? [b, a] : [a, b];
+    L = { sw, sh, AW: sw - st.ml - st.mr, AH: sh - st.mt - st.mb, blocks: [blk(1, 1, "portrait")], dir: null, n: 1 };
+  }
+  const [A, B] = L.blocks;
+  let bw, bh;
+  if (!B) { bw = A.w; bh = A.h; A.dx = 0; A.dy = 0; }
+  else if (L.dir === "x") { bw = A.w + gx + B.w; bh = Math.max(A.h, B.h); A.dx = 0; A.dy = (bh - A.h) / 2; B.dx = A.w + gx; B.dy = (bh - B.h) / 2; }
+  else { bw = Math.max(A.w, B.w); bh = A.h + gy + B.h; A.dx = (bw - A.w) / 2; A.dy = 0; B.dx = (bw - B.w) / 2; B.dy = A.h + gy; }
+  L.fits = cands.length > 0 && bw <= L.AW + 0.01 && bh <= L.AH + 0.01;
+  const left = st.ml + (L.AW - bw) / 2, top = st.mt + (L.AH - bh) / 2; // top measured down from the sheet top
+  L.bbox = { l: left, r: left + bw, t: L.sh - top, b: L.sh - top - bh };
+  L.gx = gx; L.gy = gy;
+  L.cells = [];
+  L.blocks.forEach((k, i) => {
+    k.l = left + k.dx; k.r = k.l + k.w; k.t = L.sh - top - k.dy; k.b = k.t - k.h;
+    for (let r = 0; r < k.rows; r++) for (let c = 0; c < k.cols; c++) {
+      const x = k.l + c * (k.cw + gx), y = k.t - r * (k.ch + gy) - k.ch;
+      L.cells.push({ x, y, w: k.cw, h: k.ch, o: k.o, block: i });
+    }
+  });
+  // bleed past each trim: full bleed on open sides, half the gap where a neighbour is closer
+  const bl = st.bleed, near = 2 * bl + 0.01;
+  for (const c of L.cells) {
+    const e = { l: bl, r: bl, b: bl, t: bl };
+    for (const d of L.cells) {
+      if (d === c) continue;
+      const besideY = d.y < c.y + c.h + near && d.y + d.h > c.y - near;
+      const besideX = d.x < c.x + c.w + near && d.x + d.w > c.x - near;
+      const overY = d.y < c.y + c.h - 0.01 && d.y + d.h > c.y + 0.01, overX = d.x < c.x + c.w - 0.01 && d.x + d.w > c.x + 0.01;
+      if (besideY && !overX && d.x + d.w <= c.x + 0.01) e.l = Math.min(e.l, (c.x - d.x - d.w) / 2);
+      if (besideY && !overX && d.x >= c.x + c.w - 0.01) e.r = Math.min(e.r, (d.x - c.x - c.w) / 2);
+      if (besideX && !overY && d.y + d.h <= c.y + 0.01) e.b = Math.min(e.b, (c.y - d.y - d.h) / 2);
+      if (besideX && !overY && d.y >= c.y + c.h - 0.01) e.t = Math.min(e.t, (d.y - c.y - c.h) / 2);
+    }
+    e.l = clamp(e.l, 0, c.x); e.b = clamp(e.b, 0, c.y); e.r = clamp(e.r, 0, L.sw - c.x - c.w); e.t = clamp(e.t, 0, L.sh - c.y - c.h);
+    c.ext = e;
+  }
+  return L;
+}
+
+function cutLines(k) {
+  const xs = [], ys = [];
+  const add = (arr, v) => { if (!arr.some((u) => Math.abs(u - v) < 0.05)) arr.push(v); };
+  for (let c = 0; c < k.cols; c++) { const x = k.l + c * (k.cw + st.gx); add(xs, x); add(xs, x + k.cw); }
+  for (let r = 0; r < k.rows; r++) { const y = k.b + r * (k.ch + st.gy); add(ys, y); add(ys, y + k.ch); }
+  return { xs: xs.sort((a, b) => a - b), ys: ys.sort((a, b) => a - b) };
+}
+// crop mark segments in sheet space, outside the printed area; a mark is left out where its cut would run through the other block
+function markSegs(L) {
+  if (!st.crop) return [];
+  const segs = [], off = st.markOff, len = st.markLen, bb = L.bbox;
+  const hits = (x1, y1, x2, y2, own) => L.cells.some((c) => c.block !== own &&
+    Math.max(x1, x2) > c.x + 0.01 && Math.min(x1, x2) < c.x + c.w - 0.01 && Math.max(y1, y2) > c.y + 0.01 && Math.min(y1, y2) < c.y + c.h - 0.01);
+  const push = (x1, y1, x2, y2) => {
+    const cx = (v, m) => clamp(v, 0, m);
+    x1 = cx(x1, L.sw); x2 = cx(x2, L.sw); y1 = cx(y1, L.sh); y2 = cx(y2, L.sh);
+    if (Math.hypot(x2 - x1, y2 - y1) < 0.5) return;
+    if (!segs.some((s) => Math.abs(s[0] - x1) + Math.abs(s[1] - y1) + Math.abs(s[2] - x2) + Math.abs(s[3] - y2) < 0.05)) segs.push([x1, y1, x2, y2]);
+  };
+  L.blocks.forEach((k, i) => {
+    const { xs, ys } = cutLines(k);
+    for (const x of xs) {
+      if (!hits(x, k.t, x, bb.t, i)) push(x, bb.t + off, x, bb.t + off + len);
+      if (!hits(x, bb.b, x, k.b, i)) push(x, bb.b - off, x, bb.b - off - len);
+    }
+    for (const y of ys) {
+      if (!hits(bb.l, y, k.l, y, i)) push(bb.l - off, y, bb.l - off - len, y);
+      if (!hits(k.r, y, bb.r, y, i)) push(bb.r + off, y, bb.r + off + len, y);
+    }
+  });
+  return segs;
+}
+
+function printLabel() {
+  if (st.print !== "custom") return PRINTS.find((p) => p[1] === st.print)[2].replace(/ square$/, "").replace(/^(Wallet|A\d) /, "");
+  return fmt2(st.printW, st.printH);
+}
+function sheetLabel() {
+  const s = SHEETS.find((x) => x[1] === st.sheet);
+  return st.sheet !== "custom" && s ? s[2].split(" ")[0] : fmt2(st.sheetW, st.sheetH);
+}
+
+function makePlan() {
+  const L = layout(), warns = [], N = L.cells.length;
+  const seq = [];
+  for (const p of S.photos) for (let k = 0; k < p.qty; k++) seq.push(p);
+  const nSheets = Math.max(1, Math.ceil(seq.length / N));
+  const fill = seq.slice();
+  const pool = S.photos.filter((p) => p.qty > 0);
+  if (st.fillLast && pool.length) for (let k = 0; fill.length < nSheets * N; k++) fill.push(pool[k % pool.length]);
+  const sheets = [];
+  for (let k = 0; k < nSheets; k++) sheets.push(L.cells.map((_, s) => fill[k * N + s] || null));
+
+  if (!L.fits) warns.push(st.grid === "manual"
+    ? "That many columns and rows do not fit inside the sheet margins. Use fewer, a bigger sheet or smaller margins and gutters."
+    : "Not even one print fits inside the sheet margins. Use a bigger sheet or smaller margins.");
+  const empty = seq.length ? nSheets * N - fill.length : 0;
+  if (empty > 0) warns.push(`${empty} empty slot${empty > 1 ? "s" : ""} on the last sheet. Add copies, or tick “Fill empty slots”.`);
+  const low = S.photos.filter((p) => p.qty > 0 && placement(p).ppi < LOW_PPI);
+  if (low.length) warns.push(`${low.length} photo${low.length > 1 ? "s" : ""} will print below ${LOW_PPI} ppi and may look soft: ${low.slice(0, 4).map((p) => p.name).join(", ")}${low.length > 4 ? "…" : ""}`);
+  const zero = S.photos.filter((p) => p.qty === 0).length;
+  if (zero) warns.push(`${zero} photo${zero > 1 ? "s are" : " is"} set to 0 copies and left out.`);
+  if (st.crop && st.bleed > 0 && st.markOff + 0.01 < st.bleed) warns.push("Crop mark offset is smaller than the bleed, so marks start inside the printed bleed.");
+  const room = Math.min(L.bbox.l, L.sw - L.bbox.r, L.bbox.b, L.sh - L.bbox.t);
+  if (st.crop && st.markOff + st.markLen > room + 0.01) warns.push("Margins are too small for full-length crop marks; marks are shortened at the sheet edge.");
+  return { L, sheets, warns, prints: seq.length, extra: fill.length - seq.length };
+}
+
+// ---------- reading photos ----------
+const str = (b, s, n) => String.fromCharCode(...b.subarray(s, s + n));
+function exifOrient(b, t, end) {
+  const le = b[t] === 0x49;
+  const u16 = (o) => (le ? b[o] | (b[o + 1] << 8) : (b[o] << 8) | b[o + 1]);
+  const u32 = (o) => (le ? (b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24)) : ((b[o] << 24) | (b[o + 1] << 16) | (b[o + 2] << 8) | b[o + 3])) >>> 0;
+  if (t + 8 > end || u16(t + 2) !== 42) return 1;
+  const ifd = t + u32(t + 4);
+  if (ifd + 2 > end) return 1;
+  for (let k = 0, n = u16(ifd); k < n; k++) {
+    const o = ifd + 2 + k * 12;
+    if (o + 12 > end) break;
+    if (u16(o) === 0x0112) { const v = u16(o + 8); return v >= 1 && v <= 8 ? v : 1; }
+  }
+  return 1;
+}
+// JPEG header: frame size, components, EXIF orientation, embedded ICC profile and the Adobe marker (inverted CMYK)
+function parseJpeg(b) {
+  if (b.length < 4 || b[0] !== 0xff || b[1] !== 0xd8) return null;
+  const r = { orient: 1, adobe: false, icc: null };
+  const icc = [];
+  let i = 2;
+  while (i + 4 <= b.length) {
+    if (b[i] !== 0xff) return null;
+    const m = b[i + 1];
+    if (m === 0xff) { i++; continue; }
+    if (m === 0xd8 || m === 0x01 || (m >= 0xd0 && m <= 0xd7)) { i += 2; continue; }
+    if (m === 0xd9 || m === 0xda) break;
+    const len = (b[i + 2] << 8) | b[i + 3], s = i + 4, e = Math.min(i + 2 + len, b.length);
+    if (m === 0xe1 && str(b, s, 6) === "Exif\0\0") r.orient = exifOrient(b, s + 6, e);
+    else if (m === 0xe2 && str(b, s, 12) === "ICC_PROFILE\0") icc.push([b[s + 12], b.subarray(s + 14, e)]);
+    else if (m === 0xee && str(b, s, 5) === "Adobe") r.adobe = true;
+    else if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc) {
+      r.sof = m; r.bits = b[s]; r.h = (b[s + 1] << 8) | b[s + 2]; r.w = (b[s + 3] << 8) | b[s + 4]; r.comps = b[s + 5];
+    }
+    i = i + 2 + len;
+  }
+  if (!r.w || !r.h) return null;
+  if (icc.length) {
+    icc.sort((x, y) => x[0] - y[0]);
+    const out = new Uint8Array(icc.reduce((n, x) => n + x[1].length, 0));
+    let o = 0;
+    for (const [, part] of icc) { out.set(part, o); o += part.length; }
+    r.icc = out;
+  }
+  return r;
+}
+// baseline or progressive Huffman, 8-bit, grey/RGB/CMYK: what PDF's DCTDecode reads everywhere
+const pdfReady = (j) => j && [0xc0, 0xc1, 0xc2].includes(j.sof) && j.bits === 8 && [1, 3, 4].includes(j.comps);
+
+async function decodeImage(blob) {
+  const url = URL.createObjectURL(blob);
+  try {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    return img;
+  } finally { URL.revokeObjectURL(url); }
+}
+function scaledCanvas(img, max) {
+  const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+  const k = Math.min(1, max / Math.max(w, h));
+  const c = document.createElement("canvas");
+  c.width = Math.max(1, Math.round(w * k)); c.height = Math.max(1, Math.round(h * k));
+  const g = c.getContext("2d");
+  g.imageSmoothingQuality = "high";
+  g.drawImage(img, 0, 0, c.width, c.height);
+  return c;
+}
+let nextId = 1;
+async function loadPhoto(f) {
+  const kind = /jpe?g$/i.test(f.type) || /\.jpe?g$/i.test(f.name) ? "jpeg" : /png$/i.test(f.type) || /\.png$/i.test(f.name) ? "png" : "other";
+  const head = kind === "jpeg" ? parseJpeg(new Uint8Array(await f.slice(0, 1 << 20).arrayBuffer())) : null;
+  const img = await decodeImage(f);
+  return {
+    id: nextId++, name: f.name, file: f, kind, exif: head ? head.orient : 1,
+    w: img.naturalWidth, h: img.naturalHeight, thumb: scaledCanvas(img, 480),
+    qty: Math.max(0, parseInt($("#allQty").value, 10) || 1), rot: 0, fit: null, orient: "auto", zoom: 1, cx: 0.5, cy: 0.5,
+  };
+}
+const IMG_RE = /\.(jpe?g|png|webp|gif|bmp|avif|heic|heif|tiff?)$/i;
+async function addFiles(files) {
+  const list = [...files].filter((f) => /^image\//.test(f.type) || IMG_RE.test(f.name));
+  if (!list.length) { toast("Choose photo files: JPEG, PNG, WebP…"); return; }
+  const failed = [];
+  for (let i = 0; i < list.length; i++) {
+    $("#busy").textContent = `Reading photo ${i + 1} of ${list.length}…`;
+    try { S.photos.push(await loadPhoto(list[i])); }
+    catch (e) { console.error(e); failed.push(list[i].name); }
+    if (i % 6 === 5 || i === list.length - 1) { renderPhotos(); update(); }
+  }
+  $("#busy").textContent = "";
+  if (failed.length) toast(`${failed.length} file${failed.length > 1 ? "s" : ""} could not be opened by this browser (${failed.slice(0, 3).join(", ")}${failed.length > 3 ? "…" : ""}). HEIC photos open in Safari; elsewhere, export them as JPEG.`);
+}
+
+async function samplePhotos() {
+  const specs = [[3000, 2000, "Harbour"], [2000, 3000, "Tower"], [2400, 2400, "Square"], [3600, 2400, "Dunes"], [2000, 3000, "Forest"], [3000, 2000, "Lake"]];
+  const files = [];
+  let n = 0;
+  for (const [w, h, name] of specs) {
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    const g = c.getContext("2d"), hue = (n * 57 + 200) % 360;
+    const sky = g.createLinearGradient(0, 0, 0, h);
+    sky.addColorStop(0, `hsl(${hue} 60% 35%)`); sky.addColorStop(0.6, `hsl(${(hue + 30) % 360} 70% 70%)`); sky.addColorStop(1, `hsl(${(hue + 60) % 360} 50% 30%)`);
+    g.fillStyle = sky; g.fillRect(0, 0, w, h);
+    g.fillStyle = `hsl(${(hue + 180) % 360} 90% 75%)`;
+    g.beginPath(); g.arc(w * 0.68, h * 0.34, Math.min(w, h) * 0.12, 0, 7); g.fill();
+    g.fillStyle = "rgba(10,20,30,.55)";
+    g.beginPath(); g.moveTo(0, h * 0.78);
+    for (let x = 0; x <= w; x += w / 12) g.lineTo(x, h * (0.7 + 0.08 * Math.sin(x / w * 9 + n)));
+    g.lineTo(w, h); g.lineTo(0, h); g.fill();
+    g.strokeStyle = "rgba(255,255,255,.85)"; g.lineWidth = Math.min(w, h) * 0.006;
+    g.strokeRect(w * 0.04, h * 0.04, w * 0.92, h * 0.92);
+    g.fillStyle = "#fff"; g.font = `600 ${Math.round(Math.min(w, h) * 0.07)}px system-ui, sans-serif`;
+    g.fillText(`${++n} · ${name}`, w * 0.08, h * 0.15);
+    g.font = `500 ${Math.round(Math.min(w, h) * 0.035)}px system-ui, sans-serif`;
+    g.fillText(`${w} × ${h} px · TOP`, w * 0.08, h * 0.21);
+    const blob = await new Promise((res) => c.toBlob(res, "image/jpeg", 0.9));
+    files.push(new File([blob], `sample-${n}-${name.toLowerCase()}.jpg`, { type: "image/jpeg" }));
+  }
+  await addFiles(files);
+}
+
+// ---------- PDF output ----------
+const ascii = (s) => s.replace(/[^\x20-\x7E]/g, "?");
+async function canvasJpeg(c, q) {
+  const blob = await new Promise((res) => c.toBlob(res, "image/jpeg", q));
+  if (!blob) throw new Error("The browser could not encode an image this large.");
+  return new Uint8Array(await blob.arrayBuffer());
+}
+function jpegXObject(out, bytes, j) {
+  const ctx = out.context;
+  let cs = j.comps === 1 ? "DeviceGray" : j.comps === 4 ? "DeviceCMYK" : "DeviceRGB";
+  if (j.icc && j.icc.length > 128) {
+    const space = str(j.icc, 16, 4), n = space === "RGB " ? 3 : space === "CMYK" ? 4 : space === "GRAY" ? 1 : 0;
+    if (n === j.comps) cs = ["ICCBased", ctx.register(ctx.flateStream(j.icc, { N: n, Alternate: cs }))];
+  }
+  const dict = { Type: "XObject", Subtype: "Image", Width: j.w, Height: j.h, ColorSpace: cs, BitsPerComponent: 8, Filter: "DCTDecode" };
+  if (j.comps === 4 && j.adobe) dict.Decode = [1, 0, 1, 0, 1, 0, 1, 0];
+  return ctx.register(ctx.stream(bytes, dict));
+}
+// The image XObject for a photo and the matrix from its unit square to the rotated photo's unit square
+async function photoImage(out, p) {
+  if (st.image === "resample") {
+    const pl = placement(p), img = await decodeImage(p.file);
+    const [dw] = oriented(p);
+    const tw = (pl.dst.r - pl.dst.l) / 72 * st.ppi, th = (pl.dst.t - pl.dst.b) / 72 * st.ppi;
+    const k = Math.min(1, (pl.win.r - pl.win.l) * dw / tw);
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(tw * k)); c.height = Math.max(1, Math.round(th * k));
+    const g = c.getContext("2d");
+    g.imageSmoothingQuality = "high";
+    g.setTransform(...chain(pixM(img.naturalWidth, img.naturalHeight), userRotM(p.rot), rectM(pl.win, UNIT), [c.width, 0, 0, -c.height, 0, c.height]));
+    g.drawImage(img, 0, 0);
+    const bytes = await canvasJpeg(c, 0.93);
+    c.width = c.height = 0;
+    return { ref: jpegXObject(out, bytes, parseJpeg(bytes)), srcM: rectM(UNIT, pl.win) };
+  }
+  if (p.kind === "jpeg") {
+    const bytes = new Uint8Array(await p.file.arrayBuffer()), j = parseJpeg(bytes);
+    if (pdfReady(j)) return { ref: jpegXObject(out, bytes, j), srcM: chain(EXIF_M[j.orient] || ID, userRotM(p.rot)) };
+  }
+  if (p.kind === "png") {
+    try { const im = await out.embedPng(await p.file.arrayBuffer()); return { ref: im.ref, srcM: userRotM(p.rot) }; }
+    catch (e) { console.warn("PNG embed failed, re-encoding", e); }
+  }
+  // anything else (WebP, HEIC, 12-bit JPEG…) is decoded by the browser and stored as a maximum-quality JPEG
+  const img = await decodeImage(p.file);
+  const c = document.createElement("canvas");
+  c.width = img.naturalWidth; c.height = img.naturalHeight;
+  const g = c.getContext("2d");
+  g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height);
+  g.drawImage(img, 0, 0);
+  const bytes = await canvasJpeg(c, 0.97);
+  c.width = c.height = 0;
+  return { ref: jpegXObject(out, bytes, parseJpeg(bytes)), srcM: userRotM(p.rot) };
+}
+
+async function buildPdf(plan, progress, cancelled) {
+  const { L } = plan;
+  const out = await PDFDocument.create();
+  out.setTitle(`${printLabel()} photo prints`);
+  out.setCreator("Atelier Photo Imposer");
+  const font = await out.embedFont(StandardFonts.Helvetica);
+  const markCol = st.markColor === "reg" ? cmyk(1, 1, 1, 1) : cmyk(0, 0, 0, 1);
+  const date = new Date().toISOString().slice(0, 10);
+  const used = [...new Set(plan.sheets.flat().filter(Boolean))];
+  const xo = new Map();
+  for (let i = 0; i < used.length; i++) {
+    if (cancelled()) return null;
+    progress(`Embedding photo ${i + 1} of ${used.length}: ${used[i].name}`, (i / used.length) * 0.85);
+    xo.set(used[i].id, await photoImage(out, used[i]));
+  }
+  const segs = markSegs(L);
+  plan.sheets.forEach((face, k) => {
+    const page = out.addPage([L.sw, L.sh]);
+    const names = new Map();
+    L.cells.forEach((cell, i) => {
+      const p = face[i];
+      if (!p) return;
+      const x = xo.get(p.id), pl = placement(p), e = cell.ext;
+      if (!names.has(p.id)) names.set(p.id, page.node.newXObject("Image", x.ref));
+      page.pushOperators(
+        pushGraphicsState(),
+        rectangle(cell.x - e.l, cell.y - e.b, cell.w + e.l + e.r, cell.h + e.b + e.t), clip(), endPath(),
+        concatTransformationMatrix(...chain(x.srcM, rectM(pl.win, pl.dst), cellM(pl, cell))),
+        drawObject(names.get(p.id)),
+        popGraphicsState(),
+      );
+    });
+    const th = Math.max(0.1, st.markW);
+    for (const [x1, y1, x2, y2] of segs) page.drawLine({ start: { x: x1, y: y1 }, end: { x: x2, y: y2 }, thickness: th, color: markCol });
+    if (st.slug) {
+      const s = slugPos(L);
+      page.drawText(ascii(slugText(plan, k, date)), { x: s.x, y: s.y, size: 6, font, color: cmyk(0, 0, 0, 1) });
+    }
+  });
+  progress("Writing the PDF…", 0.9);
+  return out.save({ objectsPerTick: 20 });
+}
+const slugText = (plan, k, date) => {
+  const L = plan.L;
+  return `Photo prints  |  Sheet ${k + 1} of ${plan.sheets.length}  |  ${printLabel()} prints, ${L.cells.length}-up on ${sheetLabel()}  |  bleed ${fmt(st.bleed)}  |  ${date}`;
+};
+const slugPos = (L) => ({ x: Math.max(6, L.bbox.l), y: Math.max(4, L.bbox.b - (st.crop ? st.markOff + st.markLen : st.bleed) - 9) });
+
+// ---------- controls ----------
+function buildSelect(sel, list) {
+  let group = null;
+  for (const [g, id, name] of list) {
+    const o = document.createElement("option"); o.value = id; o.textContent = name;
+    if (g && (!group || group.label !== g)) { group = document.createElement("optgroup"); group.label = g; sel.append(group); }
+    (g ? group : sel).append(o);
+  }
+}
+const ctrls = () => document.querySelectorAll("[data-k]");
+function writeControls() {
+  for (const el of ctrls()) {
+    const k = el.dataset.k, v = st[k];
+    if (el.type === "checkbox") el.checked = !!v;
+    else if (el.type === "radio") el.checked = el.value === String(v);
+    else if ("len" in el.dataset) { if (document.activeElement !== el) el.value = fmt(v, st.unit, false); }
+    else if (document.activeElement !== el) el.value = v;
+  }
+  for (const u of document.querySelectorAll("i.u")) u.textContent = st.unit;
+}
+function readControl(el) {
+  const k = el.dataset.k;
+  if (el.type === "checkbox") st[k] = el.checked;
+  else if (el.type === "radio") { if (el.checked) st[k] = el.value; }
+  else if ("len" in el.dataset) { const v = parseFloat(el.value); if (!isFinite(v) || v < 0) return false; st[k] = v * U[st.unit]; }
+  else if ("int" in el.dataset) { const v = parseInt(el.value, 10); if (!(v >= 1)) return false; st[k] = Math.min(v, +el.max || 999); }
+  else if (el.type === "number") { const v = parseFloat(el.value); if (!isFinite(v) || v < 0) return false; st[k] = v; }
+  else st[k] = el.value;
+  return true;
+}
+function onChange(k) {
+  if (k === "print" && st.print !== "custom") { const p = PRINTS.find((s) => s[1] === st.print); st.printW = p[3]; st.printH = p[4]; }
+  if (k === "printW" || k === "printH") { st.print = "custom"; $("#f-print").value = "custom"; }
+  if (k === "sheet" && st.sheet !== "custom") { const p = SHEETS.find((s) => s[1] === st.sheet); st.sheetW = p[3]; st.sheetH = p[4]; }
+  if (k === "sheetW" || k === "sheetH") { st.sheet = "custom"; $("#f-sheet").value = "custom"; }
+  if (k === "grid" && st.grid === "manual" && S.plan) {
+    const A = S.plan.L.blocks[0];
+    st.cols = A.cols; st.rows = A.rows; st.cellOrient = A.o;
+  }
+  if (!["printW", "printH", "sheetW", "sheetH"].includes(k)) writeControls();
+  store.set("photoimposer.settings", st);
+  if (k === "overlay") { drawSheet(); return; }
+  update();
+}
+function applyShows() {
+  for (const el of document.querySelectorAll("[data-show]")) {
+    const test = (c) => {
+      const m = c.match(/^(\w+)(!?=)(.*)$/);
+      let v = st[m[1]]; if (typeof v === "boolean") v = v ? "1" : "0";
+      return m[2] === "=" ? String(v) === m[3] : String(v) !== m[3];
+    };
+    el.hidden = !el.dataset.show.split("&").every((and) => and.split("|").some(test));
+  }
+}
+
+// ---------- update / render ----------
+let raf = 0;
+function schedule() { if (!raf) raf = requestAnimationFrame(() => { raf = 0; update(); }); }
+function update() {
+  applyShows();
+  S.plan = makePlan();
+  S.face = clamp(S.face, 0, S.plan.sheets.length - 1);
+  renderStats();
+  renderCuts();
+  updateNav();
+  drawSheet();
+  refreshPhotos();
+  $("#dl").disabled = !S.plan.prints;
+  $("#empty").hidden = S.photos.length > 0;
+}
+
+function drawSheet() {
+  if (!S.plan) return;
+  const L = S.plan.L, view = $("#view"), cv = $("#cv");
+  const scale = Math.max(0.05, Math.min((view.clientWidth - 32) / L.sw, (view.clientHeight - 24) / L.sh));
+  const dpr = Math.min(window.devicePixelRatio || 1, 2), s = scale * dpr;
+  cv.width = Math.round(L.sw * s); cv.height = Math.round(L.sh * s);
+  cv.style.width = Math.round(L.sw * scale) + "px"; cv.style.height = Math.round(L.sh * scale) + "px";
+  cv.dataset.scale = s;
+  const g = cv.getContext("2d");
+  const toCv = [s, 0, 0, -s, 0, L.sh * s];
+  g.fillStyle = "#fff"; g.fillRect(0, 0, cv.width, cv.height);
+  g.imageSmoothingQuality = "high";
+  const face = S.plan.sheets[S.face];
+  const cvRect = (x, y, w, h) => [x * s, (L.sh - y - h) * s, w * s, h * s];
+  L.cells.forEach((cell, i) => {
+    const p = face[i];
+    if (!p) return;
+    const pl = placement(p), e = cell.ext;
+    g.save();
+    g.beginPath(); g.rect(...cvRect(cell.x - e.l, cell.y - e.b, cell.w + e.l + e.r, cell.h + e.b + e.t)); g.clip();
+    g.setTransform(...chain(pixM(p.thumb.width, p.thumb.height), userRotM(p.rot), rectM(pl.win, pl.dst), cellM(pl, cell), toCv));
+    g.drawImage(p.thumb, 0, 0);
+    g.restore();
+  });
+  g.strokeStyle = st.markColor === "reg" ? "#000" : "#111"; g.lineWidth = Math.max(0.75, Math.max(0.1, st.markW) * s);
+  g.beginPath();
+  for (const [x1, y1, x2, y2] of markSegs(L)) { g.moveTo(x1 * s, (L.sh - y1) * s); g.lineTo(x2 * s, (L.sh - y2) * s); }
+  g.stroke();
+  if (st.slug) {
+    const sp = slugPos(L);
+    g.fillStyle = "#222"; g.font = `${6 * s}px Helvetica, Arial, sans-serif`;
+    g.fillText(slugText(S.plan, S.face, new Date().toISOString().slice(0, 10)), sp.x * s, (L.sh - sp.y) * s);
+  }
+  if (!st.overlay) return;
+  L.cells.forEach((cell, i) => {
+    const p = face[i], [x, y, w, h] = cvRect(cell.x, cell.y, cell.w, cell.h);
+    g.lineWidth = Math.max(1, s * 0.6);
+    g.setLineDash([4 * dpr, 3 * dpr]);
+    g.strokeStyle = "rgba(0,128,190,.9)";
+    g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+    g.setLineDash([]);
+    if (!p) {
+      g.fillStyle = "rgba(90,100,110,.55)"; g.font = `500 ${Math.max(10, Math.min(w, h) * 0.07)}px "IBM Plex Mono", monospace`;
+      g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("empty", x + w / 2, y + h / 2); g.textAlign = "start"; g.textBaseline = "alphabetic";
+      return;
+    }
+    const ppi = placement(p).ppi, bad = ppi < LOW_PPI;
+    const fs = Math.max(9 * dpr, Math.min(w, h) * 0.045);
+    g.font = `500 ${fs}px "IBM Plex Mono", ui-monospace, monospace`;
+    let label = `${S.photos.indexOf(p) + 1} · ${p.name}`;
+    const maxW = w - fs * 1.6;
+    while (label.length > 6 && g.measureText(label).width > maxW) label = label.slice(0, -2);
+    if (label !== `${S.photos.indexOf(p) + 1} · ${p.name}`) label += "…";
+    const lines = [label, `${Math.round(ppi)} ppi`];
+    const tw = Math.max(...lines.map((t) => g.measureText(t).width)) + fs * 0.8, thh = fs * 1.35 * lines.length + fs * 0.3;
+    g.fillStyle = bad ? "rgba(161,38,15,.92)" : "rgba(29,95,168,.9)";
+    g.beginPath(); g.roundRect ? g.roundRect(x + fs * 0.4, y + fs * 0.4, tw, thh, fs * 0.25) : g.rect(x + fs * 0.4, y + fs * 0.4, tw, thh); g.fill();
+    g.fillStyle = "#fff"; g.textBaseline = "top";
+    lines.forEach((t, j) => g.fillText(t, x + fs * 0.8, y + fs * 0.6 + j * fs * 1.35));
+    g.textBaseline = "alphabetic";
+  });
+}
+function cellAtPoint(ev) {
+  if (!S.plan) return -1;
+  const cv = $("#cv"), r = cv.getBoundingClientRect(), L = S.plan.L;
+  const x = (ev.clientX - r.left) / r.width * L.sw, y = L.sh - (ev.clientY - r.top) / r.height * L.sh;
+  return L.cells.findIndex((c) => x >= c.x && x <= c.x + c.w && y >= c.y && y <= c.y + c.h);
+}
+
+function updateNav() {
+  const n = S.plan.sheets.length;
+  $("#facelabel").textContent = `Sheet ${S.face + 1} / ${n}`;
+  $("#prev").disabled = S.face === 0;
+  $("#next").disabled = S.face >= n - 1;
+}
+function go(d) {
+  const n = S.face + d;
+  if (!S.plan || n < 0 || n >= S.plan.sheets.length) return;
+  S.face = n; updateNav(); drawSheet();
+}
+function renderStats() {
+  const { L, sheets, warns, prints, extra } = S.plan;
+  const [pw, ph] = baseDims(), n = L.cells.length;
+  const use = (n * pw * ph) / (L.sw * L.sh) * 100;
+  const split = L.blocks.length > 1 ? ` (${L.blocks.map((k) => `${k.cols}×${k.rows} ${k.o}`).join(" + ")})` : ` (${L.blocks[0].cols} × ${L.blocks[0].rows} ${L.blocks[0].o})`;
+  const chips = [
+    [`<b>${n}-up</b>`, split],
+    ["Print", `${fmt2(pw, ph)}`],
+    ["Sheet", `${fmt2(L.sw, L.sh)}`],
+    ["Paper used", `${use.toFixed(0)}%`],
+    ["Prints", `${prints}${extra ? ` + ${extra} fill` : ""}`],
+    ["Sheets", `${prints ? sheets.length : 0}`],
+  ];
+  $("#stats").innerHTML = chips.map(([a, b]) => `<span class="chip">${a} ${b}</span>`).join("");
+  $("#warns").innerHTML = "";
+  for (const w of warns) { const li = document.createElement("li"); li.textContent = w; $("#warns").append(li); }
+}
+function renderCuts() {
+  const L = S.plan.L, el = $("#cuts");
+  el.innerHTML = "";
+  const list = (arr) => arr.map((v) => fmt(v, st.unit, false)).join(" · ");
+  const row = (a, b) => { const d = document.createElement("div"), dt = document.createElement("dt"), dd = document.createElement("dd"); dt.textContent = a; dd.textContent = b; d.append(dt, dd); el.append(d); };
+  row("Sheet", `${fmt2(L.sw, L.sh)}, ${L.sw > L.sh ? "landscape" : "portrait"}`);
+  L.blocks.forEach((k, i) => {
+    const { xs, ys } = cutLines(k), pre = L.blocks.length > 1 ? `Block ${i + 1} (${k.cols}×${k.rows} ${k.o}): ` : "";
+    row(`${pre}Vertical cuts, ${xs.length}`, `from left edge: ${list(xs)} ${st.unit}`);
+    row(`${pre}Horizontal cuts, ${ys.length}`, `from top edge: ${list(ys.map((y) => L.sh - y).sort((a, b) => a - b))} ${st.unit}`);
+  });
+  const [pw, ph] = baseDims();
+  row("Finished prints", `${L.cells.length} per sheet at ${fmt2(pw, ph)}`);
+  if (L.blocks.length > 1) {
+    const p = document.createElement("p");
+    p.textContent = `First cut the sheet in two through the gutter between the blocks, then cut each block. Positions are measured from the original sheet edges.`;
+    el.append(p);
+  }
+}
+
+// ---------- photo tray ----------
+function renderPhotos() {
+  const ul = $("#plist");
+  ul.innerHTML = "";
+  if (!S.photos.length) { ul.innerHTML = `<li class="trayempty">No photos yet. Add some with “Add photos…” or drop them on the page.</li>`; return; }
+  for (const p of S.photos) {
+    const li = document.createElement("li");
+    li.className = "prow"; li.dataset.id = p.id;
+    li.innerHTML = `<button class="pthumb" title="Adjust crop"><canvas></canvas></button>
+      <div class="pmeta"><button class="pname"></button><span class="pinfo"></span></div>
+      <div class="qty"><button data-d="-1" aria-label="One fewer copy">−</button><input type="number" min="0" max="999" step="1" aria-label="Copies"><button data-d="1" aria-label="One more copy">+</button></div>
+      <button class="del" aria-label="Remove photo">✕</button>`;
+    li.querySelector(".pname").textContent = p.name;
+    li.querySelector(".pname").title = p.name;
+    li.querySelector(".qty input").setAttribute("aria-label", "Copies of " + p.name);
+    li.querySelector(".del").setAttribute("aria-label", "Remove " + p.name);
+    ul.append(li);
+  }
+}
+function drawMini(c, p) {
+  const pl = placement(p), dpr = Math.min(window.devicePixelRatio || 1, 2), k = 64 * dpr / Math.max(pl.PW, pl.PH);
+  // skip the redraw when nothing about this crop changed, so big batches stay quick while dragging
+  const key = [p.rot, pl.PW, pl.PH, dpr, pl.win.l, pl.win.b, pl.win.r, pl.win.t, pl.dst.l, pl.dst.b].map((v) => v.toFixed(4)).join();
+  if (c.dataset.key === key) return;
+  c.dataset.key = key;
+  c.width = Math.round(pl.PW * k); c.height = Math.round(pl.PH * k);
+  c.style.width = c.width / dpr + "px"; c.style.height = c.height / dpr + "px";
+  const g = c.getContext("2d");
+  g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height);
+  g.imageSmoothingQuality = "high";
+  g.setTransform(...chain(pixM(p.thumb.width, p.thumb.height), userRotM(p.rot), rectM(pl.win, pl.dst), [k, 0, 0, -k, 0, pl.PH * k]));
+  g.drawImage(p.thumb, 0, 0);
+}
+function ppiClass(ppi) { return ppi < LOW_PPI ? "ppi bad" : ppi < OK_PPI ? "ppi lo" : "ppi"; }
+function refreshPhotos() {
+  const prints = S.plan.prints;
+  $("#sum").textContent = S.photos.length ? `${S.photos.length} photo${S.photos.length > 1 ? "s" : ""} · ${prints} print${prints === 1 ? "" : "s"} · ${prints ? S.plan.sheets.length : 0} sheet${S.plan.sheets.length > 1 ? "s" : ""}` : "";
+  for (const li of $("#plist").querySelectorAll(".prow")) {
+    const p = S.photos.find((q) => q.id === +li.dataset.id);
+    if (!p) continue;
+    drawMini(li.querySelector("canvas"), p);
+    const pl = placement(p), info = li.querySelector(".pinfo");
+    info.innerHTML = `<span>${p.w} × ${p.h}</span><span>${orientOf(p)}${fitOf(p) === "fit" ? ", fit" : ""}</span><span class="${ppiClass(pl.ppi)}">${Math.round(pl.ppi)} ppi</span>`;
+    const q = li.querySelector(".qty input");
+    if (document.activeElement !== q) q.value = p.qty;
+  }
+}
+const photoOf = (el) => S.photos.find((p) => p.id === +el.closest(".prow").dataset.id);
+$("#plist").addEventListener("click", (e) => {
+  const t = e.target.closest("button");
+  if (!t) return;
+  const p = photoOf(t);
+  if (t.classList.contains("pthumb") || t.classList.contains("pname")) openEditor(p.id);
+  else if (t.classList.contains("del")) removePhoto(p.id);
+  else if (t.dataset.d) { p.qty = clamp(p.qty + +t.dataset.d, 0, 999); schedule(); }
+});
+$("#plist").addEventListener("input", (e) => {
+  if (!e.target.matches(".qty input")) return;
+  const v = parseInt(e.target.value, 10);
+  if (v >= 0) { photoOf(e.target).qty = Math.min(v, 999); schedule(); }
+});
+$("#plist").addEventListener("focusout", (e) => { if (e.target.matches(".qty input")) e.target.value = photoOf(e.target).qty; });
+function removePhoto(id) {
+  S.photos = S.photos.filter((p) => p.id !== id);
+  renderPhotos(); update();
+}
+$("#setAll").onclick = () => {
+  const v = parseInt($("#allQty").value, 10);
+  if (!(v >= 0)) return;
+  for (const p of S.photos) p.qty = Math.min(v, 999);
+  update();
+};
+$("#sortName").onclick = () => {
+  S.photos.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
+  renderPhotos(); update();
+};
+$("#clearAll").onclick = () => {
+  if (!S.photos.length || !confirm(`Remove all ${S.photos.length} photos?`)) return;
+  S.photos = []; S.face = 0; renderPhotos(); update();
+};
+
+// ---------- crop editor ----------
+const E = { id: null, img: null, imgFor: null, drag: null, view: null };
+const edPhoto = () => S.photos.find((p) => p.id === E.id);
+function openEditor(id) {
+  E.id = id;
+  const ed = $("#ed");
+  if (!ed.open) ed.showModal();
+  loadEditorImage(edPhoto());
+  syncEditor();
+}
+async function loadEditorImage(p) {
+  if (E.imgFor === p.id) return;
+  E.imgFor = p.id; E.img = p.thumb;
+  try {
+    const img = await decodeImage(p.file);
+    if (E.imgFor !== p.id) return;
+    E.img = scaledCanvas(img, 2000);
+    drawEditor();
+  } catch (e) { console.warn(e); }
+}
+function syncEditor() {
+  const p = edPhoto();
+  if (!p) { $("#ed").close(); return; }
+  const i = S.photos.indexOf(p), pl = placement(p), fill = fitOf(p) === "fill";
+  $("#edTitle").textContent = p.name;
+  $("#edCount").textContent = `${i + 1} of ${S.photos.length}`;
+  $("#edPrev").disabled = i === 0;
+  $("#edNext").disabled = i === S.photos.length - 1;
+  for (const r of document.querySelectorAll('[name="edFit"]')) r.checked = r.value === fitOf(p);
+  for (const r of document.querySelectorAll('[name="edOrient"]')) r.checked = r.value === p.orient;
+  $("#edZoomF").hidden = !fill; $("#edReset").hidden = !fill;
+  $("#edZoom").value = p.zoom;
+  if (document.activeElement !== $("#edQty")) $("#edQty").value = p.qty;
+  const info = $("#edInfo"); info.innerHTML = "";
+  const rows = [
+    ["Photo", `${p.w} × ${p.h} px`],
+    ["Print", `${fmt2(pl.PW, pl.PH)} ${orientOf(p)}`],
+    ["Resolution", `${Math.round(pl.ppi)} ppi`],
+  ];
+  if (p.rot) rows.push(["Rotated", `${p.rot}° clockwise`]);
+  for (const [k, v] of rows) {
+    const dt = document.createElement("dt"), dd = document.createElement("dd"); dt.textContent = k; dd.textContent = v;
+    if (k === "Resolution") dd.className = ppiClass(pl.ppi);
+    info.append(dt, dd);
+  }
+  $("#edHint").textContent = fill
+    ? (st.bleed > 0 ? "Drag the frame to move the crop; scroll or use the slider to zoom. The lighter band is the bleed, cut off after trimming." : "Drag the frame to move the crop; scroll or use the slider to zoom.")
+    : "The whole photo is shown, centred on the print with white borders.";
+  drawEditor();
+}
+function drawEditor() {
+  const p = edPhoto();
+  if (!p || !E.img) return;
+  const cv = $("#ecv"), box = $("#edstage");
+  const aw = Math.max(80, box.clientWidth - 32), ah = Math.max(80, box.clientHeight - 32);
+  const dpr = Math.min(window.devicePixelRatio || 1, 2), pl = placement(p), g = cv.getContext("2d");
+  const src = chain(pixM(E.img.width, E.img.height), userRotM(p.rot));
+  if (fitOf(p) === "fit") {
+    const k = Math.min(aw / pl.PW, ah / pl.PH), W = pl.PW * k, H = pl.PH * k;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    cv.style.width = Math.round(W) + "px"; cv.style.height = Math.round(H) + "px";
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.fillStyle = "#fff"; g.fillRect(0, 0, cv.width, cv.height);
+    g.imageSmoothingQuality = "high";
+    g.setTransform(...chain(src, rectM(pl.win, pl.dst), [k * dpr, 0, 0, -k * dpr, 0, H * dpr]));
+    g.drawImage(E.img, 0, 0);
+    cv.classList.remove("drag");
+    E.view = null;
+    return;
+  }
+  const [dw, dh] = oriented(p), k = Math.min(aw / dw, ah / dh), W = dw * k, H = dh * k;
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  cv.style.width = Math.round(W) + "px"; cv.style.height = Math.round(H) + "px";
+  g.imageSmoothingQuality = "high";
+  g.setTransform(...chain(src, [cv.width, 0, 0, -cv.height, 0, cv.height]));
+  g.drawImage(E.img, 0, 0);
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  const cw = cv.width, ch = cv.height, w = pl.win;
+  const fx = w.l * cw, fy = (1 - w.t) * ch, fw = (w.r - w.l) * cw, fh = (w.t - w.b) * ch;
+  const bx = pl.bleed / (pl.PW + 2 * pl.bleed) * fw, by = pl.bleed / (pl.PH + 2 * pl.bleed) * fh;
+  const tx = fx + bx, ty = fy + by, tw = fw - 2 * bx, th = fh - 2 * by;
+  g.fillStyle = "rgba(8,12,16,.62)";
+  g.beginPath(); g.rect(0, 0, cw, ch); g.rect(fx, fy, fw, fh); g.fill("evenodd");
+  if (bx > 0.5 || by > 0.5) {
+    g.fillStyle = "rgba(255,255,255,.28)";
+    g.beginPath(); g.rect(fx, fy, fw, fh); g.rect(tx, ty, tw, th); g.fill("evenodd");
+  }
+  g.lineWidth = Math.max(1, dpr);
+  g.strokeStyle = "rgba(255,255,255,.35)";
+  g.beginPath();
+  for (const f of [1 / 3, 2 / 3]) { g.moveTo(tx + tw * f, ty); g.lineTo(tx + tw * f, ty + th); g.moveTo(tx, ty + th * f); g.lineTo(tx + tw, ty + th * f); }
+  g.stroke();
+  g.strokeStyle = "#fff"; g.lineWidth = 1.5 * dpr;
+  g.strokeRect(tx, ty, tw, th);
+  cv.classList.add("drag");
+  E.view = { W, H, dw, dh };
+}
+function edChanged() { syncEditor(); schedule(); }
+function moveCrop(p, dxFrac, dyFrac) {
+  p.cx += dxFrac; p.cy += dyFrac;
+  // fold the clamped window back into the stored centre so dragging past an edge doesn't build up slack
+  const w = placement(p).win;
+  p.cx = (w.l + w.r) / 2; p.cy = 1 - (w.t + w.b) / 2;
+}
+$("#ecv").addEventListener("pointerdown", (e) => {
+  const p = edPhoto();
+  if (!p || !E.view || e.button !== 0) return;
+  E.drag = { x: e.clientX, y: e.clientY };
+  $("#ecv").setPointerCapture(e.pointerId);
+});
+$("#ecv").addEventListener("pointermove", (e) => {
+  const p = edPhoto();
+  if (!E.drag || !p || !E.view) return;
+  moveCrop(p, (e.clientX - E.drag.x) / E.view.W, (e.clientY - E.drag.y) / E.view.H);
+  E.drag = { x: e.clientX, y: e.clientY };
+  drawEditor(); schedule();
+});
+for (const ev of ["pointerup", "pointercancel"]) $("#ecv").addEventListener(ev, () => { if (E.drag) { E.drag = null; syncEditor(); } });
+$("#ecv").addEventListener("wheel", (e) => {
+  const p = edPhoto();
+  if (!p || !E.view) return;
+  e.preventDefault();
+  p.zoom = clamp(p.zoom * Math.exp(-e.deltaY * 0.0015), 1, 6);
+  moveCrop(p, 0, 0);
+  edChanged();
+}, { passive: false });
+$("#edZoom").addEventListener("input", (e) => { const p = edPhoto(); p.zoom = +e.target.value; moveCrop(p, 0, 0); edChanged(); });
+document.querySelectorAll('[name="edFit"]').forEach((r) => r.addEventListener("change", () => { edPhoto().fit = r.value; edChanged(); }));
+document.querySelectorAll('[name="edOrient"]').forEach((r) => r.addEventListener("change", () => { edPhoto().orient = r.value; edChanged(); }));
+const rotate = (d) => { const p = edPhoto(); p.rot = (p.rot + d + 360) % 360; p.cx = p.cy = 0.5; p.zoom = 1; edChanged(); };
+$("#edRotL").onclick = () => rotate(-90);
+$("#edRotR").onclick = () => rotate(90);
+$("#edReset").onclick = () => { const p = edPhoto(); p.cx = p.cy = 0.5; p.zoom = 1; edChanged(); };
+$("#edQty").addEventListener("input", (e) => { const v = parseInt(e.target.value, 10); if (v >= 0) { edPhoto().qty = Math.min(v, 999); schedule(); } });
+const edStep = (d) => { const i = S.photos.indexOf(edPhoto()) + d; if (i >= 0 && i < S.photos.length) openEditor(S.photos[i].id); };
+$("#edPrev").onclick = () => edStep(-1);
+$("#edNext").onclick = () => edStep(1);
+$("#edDone").onclick = () => $("#ed").close();
+$("#edRemove").onclick = () => {
+  const i = S.photos.indexOf(edPhoto());
+  removePhoto(E.id);
+  if (!S.photos.length) { $("#ed").close(); return; }
+  openEditor(S.photos[Math.min(i, S.photos.length - 1)].id);
+};
+$("#ed").addEventListener("close", () => { E.id = null; E.imgFor = null; E.img = null; });
+$("#ed").addEventListener("keydown", (e) => {
+  if (/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) && document.activeElement.type !== "range" && document.activeElement.type !== "radio") return;
+  if (e.key === "PageUp" || e.key === "[") { edStep(-1); e.preventDefault(); }
+  else if (e.key === "PageDown" || e.key === "]") { edStep(1); e.preventDefault(); }
+  else if (E.view && e.key.startsWith("Arrow")) {
+    const p = edPhoto(), step = e.shiftKey ? 0.05 : 0.01;
+    const d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
+    moveCrop(p, d[0], d[1]); edChanged(); e.preventDefault();
+  }
+});
+$("#cv").addEventListener("click", (e) => {
+  const i = cellAtPoint(e), p = i >= 0 && S.plan.sheets[S.face][i];
+  if (p) openEditor(p.id);
+});
+
+// ---------- download ----------
+let downloads = null;
+if (window.claude && window.claude.use) window.claude.use("downloads").then((d) => { downloads = d; }).catch(() => {});
+async function download() {
+  if (!S.plan || !S.plan.prints || S.building) return;
+  const plan = S.plan, job = { cancel: false };
+  S.building = job;
+  $("#building").hidden = false;
+  const progress = (msg, f) => { $("#bmsg").textContent = msg; $("#bprog").style.width = (f * 100).toFixed(1) + "%"; };
+  progress("Starting…", 0);
+  try {
+    const bytes = await buildPdf(plan, progress, () => job.cancel);
+    if (!bytes) { toast("PDF cancelled."); return; }
+    const slug = (t) => t.replace(/\s*×\s*/g, "x").replace(/\s+/g, "");
+    const name = `photos_${slug(printLabel())}_${slug(sheetLabel())}_${plan.L.cells.length}up_${plan.sheets.length}sheets.pdf`.replace(/[\\/:*?"<>|]/g, "_");
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    const mb = (bytes.length / 1048576).toFixed(1);
+    if (downloads) {
+      try { await downloads.save({ filename: name, data: blob }); toast(`Saved ${name} (${mb} MB)`); }
+      catch (e) {
+        if (e && e.code === "declined") toast("Download cancelled.");
+        else if (e && e.code === "rate_limited") toast("A save prompt is already open.");
+        else toast("Download is not available in this view.");
+      }
+      return;
+    }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = name; document.body.append(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+    toast(`Downloaded ${name} (${mb} MB)`);
+  } catch (e) {
+    console.error(e);
+    toast("Building the PDF failed: " + (e.message || e));
+  } finally {
+    S.building = null;
+    $("#building").hidden = true;
+  }
+}
+$("#bcancel").onclick = () => { if (S.building) { S.building.cancel = true; $("#bmsg").textContent = "Cancelling…"; } };
+
+// ---------- presets ----------
+function renderPresets() {
+  const list = store.get("photoimposer.presets", []);
+  const ul = $("#presets"); ul.innerHTML = "";
+  list.forEach((p, i) => {
+    const li = document.createElement("li");
+    const b = document.createElement("button"); b.className = "load"; b.textContent = p.name; b.title = "Load " + p.name;
+    b.onclick = () => { st = Object.assign({}, DEF, p.st, { overlay: st.overlay }); writeControls(); store.set("photoimposer.settings", st); update(); toast("Loaded " + p.name); };
+    const d = document.createElement("button"); d.className = "del"; d.textContent = "✕"; d.setAttribute("aria-label", "Delete " + p.name);
+    d.onclick = () => { list.splice(i, 1); store.set("photoimposer.presets", list); renderPresets(); };
+    li.append(b, d); ul.append(li);
+  });
+}
+$("#savePreset").onclick = () => {
+  const name = $("#presetName").value.trim() || `${printLabel()} on ${sheetLabel()}`;
+  const list = store.get("photoimposer.presets", []).filter((p) => p.name !== name);
+  list.push({ name, st: { ...st } });
+  if (store.set("photoimposer.presets", list)) { $("#presetName").value = ""; renderPresets(); toast("Saved setup " + name); }
+  else toast("This browser is blocking storage, so setups can't be saved here.");
+};
+
+// ---------- misc UI ----------
+let toastT = 0;
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => (t.hidden = true), 4200); }
+
+buildSelect($("#f-print"), PRINTS);
+buildSelect($("#f-sheet"), SHEETS);
+writeControls();
+renderPresets();
+renderPhotos();
+for (const el of ctrls()) {
+  const ev = el.type === "checkbox" || el.type === "radio" || el.tagName === "SELECT" ? "change" : "input";
+  el.addEventListener(ev, () => { if (readControl(el)) onChange(el.dataset.k); });
+  if ("len" in el.dataset || "int" in el.dataset) el.addEventListener("blur", () => writeControls());
+}
+$("#open").onclick = $("#open2").onclick = () => $("#file").click();
+$("#file").onchange = (e) => { const f = [...e.target.files]; e.target.value = ""; addFiles(f); };
+$("#sample").onclick = samplePhotos;
+$("#dl").onclick = download;
+$("#prev").onclick = () => go(-1);
+$("#next").onclick = () => go(1);
+document.addEventListener("keydown", (e) => {
+  if ($("#ed").open || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if (e.key === "ArrowLeft") go(-1); else if (e.key === "ArrowRight") go(1);
+});
+let dragN = 0;
+window.addEventListener("dragenter", (e) => { if ([...e.dataTransfer.types].includes("Files")) { dragN++; $("#drop").hidden = false; } });
+window.addEventListener("dragleave", () => { if (--dragN <= 0) { dragN = 0; $("#drop").hidden = true; } });
+window.addEventListener("dragover", (e) => e.preventDefault());
+window.addEventListener("drop", (e) => { e.preventDefault(); dragN = 0; $("#drop").hidden = true; addFiles(e.dataTransfer.files); });
+let rsT = 0;
+new ResizeObserver(() => { clearTimeout(rsT); rsT = setTimeout(() => { drawSheet(); if ($("#ed").open) drawEditor(); }, 100); }).observe($("#view"));
+new ResizeObserver(() => { if ($("#ed").open) drawEditor(); }).observe($("#edstage"));
+update();
+</script>
+</body>
+</html>
